@@ -1,0 +1,29 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Copy Script from Master
+      copy:
+        src: /home/vagrant/automate_deploy.sh
+        dest: /tmp/deploy_lamp.sh
+        owner: root
+        group: root
+        mode: 0755
+    - name: Run LAMP deployment script
+      shell: /tmp/deploy_lamp.sh
+      register: lamp_deploy
+
+    - name: Verify application accessibility
+      uri:
+        url: http://192.168.50.9
+        return_content: yes
+      register: app_response
+    - name: Assert application accessibility
+      debug:
+        msg: "Application accessible: {{app_response.status == 200}}"
+    - name: Add cron job to check uptime
+      cron:
+        name: Check server uptime
+        job: "/bin/bash -c 'uptime >> /var/log/uptime.log'"
+        minute: "0"
+        hour: "0"
